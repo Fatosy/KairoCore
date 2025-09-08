@@ -5,7 +5,7 @@
 ---
 
 <div align="center">
-  <img src="https://via.placeholder.com/800x200/0F1A2C/00F5D4?text=KAIROCORE+-+Coming+Soon" alt="KairoCore Hero Banner" />
+  <img src="https://github.com/Fatosy/KairoCore/blob/master/imgs/logo-pixel.png" alt="KairoCore Hero Banner" />
 </div>
 
 ---
