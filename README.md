@@ -105,3 +105,7 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 如果你觉得这个项目对你有帮助，你可以帮作者买一杯咖啡表示支持！
 
 ![donate](https://github.com/Fatosy/KairoCore/blob/master/imgs/pay.png)
+
+## ✨ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=KairoCore/KairoCore&type=Date)](https://www.star-history.com/#KairoCore/KairoCore&Date)
