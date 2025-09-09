@@ -104,4 +104,4 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 
 如果你觉得这个项目对你有帮助，你可以帮作者买一杯咖啡表示支持！
 
-![donate](https://unpkg.com/@vbenjs/static-source@0.1.7/source/sponsor.png)
+![donate](https://github.com/Fatosy/KairoCore/blob/master/imgs/pay.png)
