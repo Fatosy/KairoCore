@@ -4,8 +4,8 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, HTTPException
 from starlette.requests import Request
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
-from common.http import HttpStatusCode
-from utils.log import get_logger
+from ..common.http import HttpStatusCode
+from ..utils.log import get_logger
 
 logger = get_logger()
 

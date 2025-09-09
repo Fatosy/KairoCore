@@ -2,11 +2,11 @@ import os
 import importlib.util
 import inspect
 import functools
-from pydantic import BaseModel
-from typing import Any, Callable, Dict, List, Optional, get_type_hints, Union
+from typing import Any, Callable, get_type_hints
 from fastapi import FastAPI, APIRouter, params
-from utils.panic import Panic
-from utils.log import get_logger
+from fastapi.responses import FileResponse
+from ..utils.panic import Panic
+from ..utils.log import get_logger
 
 app_logger = get_logger()
 # --- 定义允许的参数名称 ---
@@ -289,6 +289,33 @@ def print_registered_routes(app: FastAPI, app_host: str, app_port: int):
     
     app_logger.info(f"总共注册了 {len(app.routes)} 个路由")
     app_logger.info("-" * 80)
+
+
+
+def create_init_router(app: FastAPI):
+
+    @app.get("/")
+    async def welcome():
+        welcome_msg = f"欢迎使用 KairoCore API!"
+        app_logger.info(welcome_msg)
+        return {"message": welcome_msg}
+    
+    @app.get("/favicon.ico")
+    async def favicon():
+        # 首先检查用户是否提供了 favicon
+        user_favicon_path = "../imgs/favicon.ico"
+        # 框架内置的默认 favicon 路径
+        default_favicon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "imgs", "favicon.ico")
+        # 如果用户提供了 favicon，则使用用户的
+        if os.path.exists(user_favicon_path):
+            return FileResponse(user_favicon_path)
+        # 否则使用框架内置的默认 favicon
+        elif os.path.exists(default_favicon_path):
+            return FileResponse(default_favicon_path)
+        else:
+            return FileResponse(default_favicon_path)
+
+
 
 # --- 示例调用 ---
 # 假设你的 main.py 或应用初始化代码中这样调用：
