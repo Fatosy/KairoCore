@@ -1,11 +1,11 @@
-# <img src="https://github.com/Fatosy/KairoCore/blob/master/imgs/logo-pixel-32.jpg" alt="KairoCore Logo-32" /> KAIRO CORE  
+# 🌌 KAIRO CORE  
 ### The Intelligence Engine for Critical Moments  
 > **时机，即是智能 —— 为关键时刻而生的核心引擎**
 
 ---
 
 <div align="center">
-  <img src="https://github.com/Fatosy/KairoCore/blob/master/imgs/logo-pixel.png" alt="KairoCore Hero Banner" />
+  <img src="https://github.com/Fatosy/KairoCore/blob/master/imgs/logo-pixel-512.jpg" alt="KairoCore Hero Banner" />
 </div>
 
 ---
