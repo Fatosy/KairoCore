@@ -106,6 +106,19 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 
 ![donate](https://github.com/Fatosy/KairoCore/blob/master/imgs/pay.png)
 
-## ✨ Star History
+---
+
+## ✨ Star 历史
 
 [![Star History Chart](https://api.star-history.com/svg?repos=KairoCore/KairoCore&type=Date)](https://www.star-history.com/#KairoCore/KairoCore&Date)
+
+---
+
+## 👥 贡献者
+
+<img src="https://www.openomy.com/svg?repo=fatosy/KairoCore&chart=bubble&latestMonth=3" target="_blank" alt="Contribution Leaderboard" style="display: block; width: 100%;" />
+
+---
+
+
+<img alt="Contributors" src="https://contrib.rocks/image?repo=fatosy/KairoCore" />
