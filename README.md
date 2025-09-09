@@ -100,6 +100,40 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 
 ---
 
+## 💡 如何贡献
+
+非常欢迎你的加入！[提一个 Issue](https://github.com/vbenjs/vue-vben-admin/issues/new) 或者提交一个 Pull Request。
+
+**Pull Request 流程：**
+
+1. Fork 代码
+2. 创建自己的分支：`git checkout -b feature/xxxx`
+3. 提交你的修改：`git commit -am 'feat(function): add xxxxx'`
+4. 推送您的分支：`git push origin feature/xxxx`
+5. 提交 `pull request`
+
+---
+
+## ⚒️ Git 贡献提交规范
+
+- `feat` 增加新功能
+- `fix` 修复问题/BUG
+- `style` 代码风格相关无影响运行结果的
+- `perf` 优化/性能提升
+- `refactor` 重构
+- `revert` 撤销修改
+- `test` 测试相关
+- `docs` 文档/注释
+- `chore` 依赖更新/脚手架配置修改等
+- `ci` 持续集成
+- `types` 类型定义文件更改
+
+---
+
+## 维护者
+
+[@Fatosy](https://github.com/fatosy)
+
 ## ☕ 捐赠
 
 如果你觉得这个项目对你有帮助，你可以帮作者买一杯咖啡表示支持！
@@ -109,12 +143,11 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 ---
 
 ## ✨ Star 历史
-
-[![Star History Chart](https://api.star-history.com/svg?repos=KairoCore/KairoCore&type=Date)](https://www.star-history.com/#KairoCore/KairoCore&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=fatosy/KairoCore&type=Date)](https://www.star-history.com/#fatosy/KairoCore&Date)
 
 ---
 
-## 👥 贡献者
+## 🫶 贡献者
 
 <img src="https://www.openomy.com/svg?repo=fatosy/KairoCore&chart=bubble&latestMonth=3" target="_blank" alt="Contribution Leaderboard" style="display: block; width: 100%;" />
 
