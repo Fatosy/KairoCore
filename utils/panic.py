@@ -10,8 +10,28 @@ from ..utils.log import get_logger
 logger = get_logger()
 
 class Panic(Exception):
+    """
+    自定义业务异常类，用于处理应用程序中的业务逻辑错误
+    
+    Attributes:
+        bussiness_code (int): 业务错误码
+        message (str): 错误消息
+        back_message (str): 原始错误消息
+        status_code (HttpStatusCode): HTTP状态码
+    """
 
     def __init__(self, bussiness_code: int, message: str, status_code: HttpStatusCode = HttpStatusCode.INTERNAL_SERVER_ERROR):
+        """
+        初始化Panic异常实例
+        
+        Args:
+            bussiness_code (int): 业务错误码
+            message (str): 错误消息
+            status_code (HttpStatusCode, optional): HTTP状态码，默认为500 INTERNAL_SERVER_ERROR
+            
+        Raises:
+            TypeError: 当status_code不是HttpStatusCode类型时抛出
+        """
         if not isinstance(status_code, HttpStatusCode):
             raise TypeError("异常类的status_code参数必须是HttpStatusCode枚举类型")
         self.bussiness_code = bussiness_code
@@ -19,7 +39,16 @@ class Panic(Exception):
         self.back_message = message
         self.status_code = status_code
 
-    def to_response(self):
+    def to_response(self) -> JSONResponse:
+        """
+        将异常转换为JSON响应格式
+        
+        Returns:
+            JSONResponse: 包含错误信息的JSON响应对象
+                - code: 业务错误码
+                - error: 布尔值，始终为True表示错误
+                - message: 错误消息
+        """
         res_json = {
             "code": self.bussiness_code,
             "error": True,
@@ -32,14 +61,59 @@ class Panic(Exception):
             content=res_json
         )
 
+    def msg_format(self, msg: str) -> 'Panic':
+        """
+        格式化错误消息并返回新的Panic实例
+        
+        Args:
+            msg (str): 要添加到原始消息的额外信息
+            
+        Returns:
+            Panic: 新的Panic实例，包含格式化后的错误消息
+        """
+        new_message = f'{self.message}: {msg}'
+        newError = Panic(self.bussiness_code, new_message, self.status_code)
+        return newError
+
 class QueryResponse:
+    """
+    查询响应类，用于构建标准的查询结果响应
+    
+    Attributes:
+        status_code (HttpStatusCode): HTTP状态码，默认为200 OK
+        message (str): 响应消息，默认为"Success"
+        bussiness_code (int): 业务状态码，默认为200
+    """
 
     def __init__(self):
+        """
+        初始化QueryResponse实例
+        
+        设置默认的响应属性：
+        - status_code: HttpStatusCode.OK (200)
+        - message: "Success"
+        - bussiness_code: 200
+        """
         self.status_code = HttpStatusCode.OK
         self.message = "Success"
         self.bussiness_code = 200
 
     def to_response(self, data: List[Any], total: int):
+        """
+        将查询结果转换为标准JSON响应格式
+        
+        Args:
+            data (List[Any]): 查询结果数据列表
+            total (int): 数据总数量
+            
+        Returns:
+            JSONResponse: 包含查询结果的JSON响应对象，格式如下：
+                - code: 业务状态码
+                - error: 布尔值，始终为False表示成功
+                - message: 响应消息
+                - data: 查询结果数据
+                - total: 数据总数量
+        """
         res_json = {
             "code": self.bussiness_code,
             "error": False,

@@ -1,4 +1,5 @@
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI as KarioCore
 from .utils.panic import register_exception_handlers
 from .utils.router import (
@@ -17,6 +18,7 @@ def run_kairo(app_name: str, app_port: int=8000, app_host: str="0.0.0.0") -> Kar
     Returns:
         KairoCore: 配置好的 KairoCore 应用实例
     """
+    load_dotenv()
     app = KarioCore()
 
     # 注册初始化路由
