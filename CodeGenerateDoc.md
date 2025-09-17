@@ -52,3 +52,7 @@ KairoCore 提供了强大的代码生成器，可以一键生成完整的 CRUD �
 4. 生成的代码遵循 KairoCore 的分层架构规范
 
 通过代码生成器，您可以快速搭建业务模块的基础代码结构，专注于业务逻辑的实现而非重复的代码编写。
+
+<div align="center">
+  <img src="https://github.com/Fatosy/KairoCore/blob/master/imgs/code_generator.png" alt="KairoCore Code Generator" />
+</div>
