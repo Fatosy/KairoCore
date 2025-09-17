@@ -104,6 +104,8 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 
 - [📖 项目结构说明](UseDoc.md) - 详细的项目结构说明
 - [🛠️ 代码自动生成](CodeGenerateDoc.md) - 代码生成器指南
+- [🔖 项目具体示例](example/your_project_name) - 项目具体示例
+
 
 ---
 
