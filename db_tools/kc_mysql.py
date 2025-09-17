@@ -78,6 +78,8 @@ class MysqlSession:
         if not self._pool:
             raise RuntimeError("连接池未初始化")
         self.connection = self._pool.connection() # 从池中获取连接
+        # 默认开始事务
+        self.connection.begin()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -163,7 +165,7 @@ class MysqlSession:
         processed_params_list = [
             self._convert_sql_params(query, params)[1] for params in params_list
         ]
-
+        
         with self.connection.cursor() as cursor:
             # *** 防注入：executemany 同样安全处理参数 ***
             return cursor.executemany(processed_query, processed_params_list)
@@ -281,6 +283,9 @@ class AsyncMysqlSession:
             raise RuntimeError("异步连接池未初始化")
         # 从池中获取连接
         self.connection = await self.pool.acquire()
+        # 默认开始事务
+        await self.connection.begin()
+        self.transaction_conn = self.connection # 标记事务已开始
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
@@ -414,7 +419,9 @@ class AsyncMysqlSession:
         # 将 LIMIT 和 OFFSET 附加到参数元组末尾
         # *** 防注入：确保 offset 和 limit 是整数 ***
         paged_query = f"{base_query} LIMIT %s OFFSET %s"
-        paged_params = base_params_tuple + (int(limit), int(offset)) # 强制转换为 int
+        offset = 1 if offset <= 1 else offset
+        new_offset = limit * (offset - 1)
+        paged_params = base_params_tuple + (int(limit), int(new_offset)) # 强制转换为 int
 
         async with self.connection.cursor(aiomysql.DictCursor) as cursor:
             # *** 防注入核心：所有参数（包括 limit/offset）都通过 execute 传递 ***

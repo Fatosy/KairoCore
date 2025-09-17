@@ -1,6 +1,7 @@
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI as KarioCore
+from .code_generate.generator_router import router as generator_router
 from .utils.panic import register_exception_handlers
 from .utils.router import (
     register_routes, 
@@ -30,6 +31,9 @@ def run_kairo(app_name: str, app_port: int=8000, app_host: str="0.0.0.0") -> Kar
     # 注册全局路由
     api_prefix = f"/{app_name}/api/"
     register_routes(app, api_prefix)
+
+    # 注册代码生成器路由
+    app.include_router(generator_router, prefix="/api", tags=["代码生成器"])
 
     # 打印全局路由
     print_registered_routes(app, app_host, app_port)

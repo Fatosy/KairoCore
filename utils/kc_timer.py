@@ -2,7 +2,7 @@ import pytz
 import datetime
 from typing import Union, Literal, List
 
-from common.errors import (
+from ..common.errors import (
     KCT_TIME_PARAM_EMPTY_ERROR,
     KCT_TIME_CHANGE_ERROR,
     KCT_TIME_VALIDATE_ERROR

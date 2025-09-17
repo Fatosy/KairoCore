@@ -98,7 +98,7 @@ class QueryResponse:
         self.message = "Success"
         self.bussiness_code = 200
 
-    def to_response(self, data: List[Any], total: int):
+    def to_response(self, data: List[Any]=[], total: int=0, limit:int=None, offset:int=None, msg: str=None):
         """
         将查询结果转换为标准JSON响应格式
         
@@ -113,13 +113,21 @@ class QueryResponse:
                 - message: 响应消息
                 - data: 查询结果数据
                 - total: 数据总数量
+                - limit: 每页数据数量，可选
+                - offset: 数据偏移量，可选
+                - msg: 额外的消息，可选
         """
+        pagination = {
+            "limit": limit,
+            "offset": offset
+        }
         res_json = {
             "code": self.bussiness_code,
             "error": False,
-            "message": self.message,
+            "message": self.message if not msg else msg,
             "data": data,
-            "total": total
+            "total": total,
+            "pagination": pagination if limit and offset else {}
         }
         
         # 返回 JSON 响应
