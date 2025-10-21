@@ -10,11 +10,12 @@ from ..utils.log import get_logger
 
 app_logger = get_logger()
 # --- 定义允许的参数名称 ---
-ALLOWED_PARAM_NAMES = {"query", "body"}
+ALLOWED_PARAM_NAMES = {"query", "body", "file"}
 # --- 定义参数到 FastAPI 依赖类型的映射 ---
 PARAM_TO_DEPENDENCY_TYPE = {
     "query": params.Query,
     "body": params.Body,
+    "file": params.File,
 }
 
 def _create_enforced_wrapper(original_func: Callable, allowed_param_names: set):

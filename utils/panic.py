@@ -1,4 +1,4 @@
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Awaitable, TypeVar
 from fastapi import FastAPI as KarioCore
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError, HTTPException
@@ -8,6 +8,8 @@ from ..common.http import HttpStatusCode
 from ..utils.log import get_logger
 
 logger = get_logger()
+
+T = TypeVar("T")
 
 class Panic(Exception):
     """
@@ -189,3 +191,21 @@ def register_exception_handlers(app: KarioCore):
             }
         )
     
+# 通用路由异常包装，确保接口层统一返回 KCFU_* 异常
+async def exec_with_route_error(awaitable: Awaitable[T], error_const: Panic) -> T:
+    # 参数校验：awaitable 必须为可等待对象，error_const 必须为 Panic 实例
+    # 惰性导入集中定义的 Panic 常量，避免模块级循环依赖
+    from ..common.errors import (
+        KCP_EXEC_AWAITABLE_TYPE_ERROR,
+        KCP_EXEC_PANIC_CONST_TYPE_ERROR,
+    )
+    if not hasattr(awaitable, "__await"):
+        raise KCP_EXEC_AWAITABLE_TYPE_ERROR
+    if not isinstance(error_const, Panic):
+        raise KCP_EXEC_PANIC_CONST_TYPE_ERROR
+    try:
+        return await awaitable
+    except Panic:
+        raise
+    except Exception as e:
+        raise error_const.msg_format(str(e)) from e
