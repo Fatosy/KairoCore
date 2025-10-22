@@ -18,6 +18,9 @@ import time
 import base64
 import uuid
 import hashlib
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from typing import Any, Dict, List, Optional, Tuple
 from contextvars import ContextVar
 
@@ -33,6 +36,7 @@ from ..common.errors import (
     KCAUTH_TENANT_REQUIRED,
     KCAUTH_ROLE_REQUIRED,
     KCAUTH_CONFIG_ERROR,
+    KCAUTH_LOGIN_FAILED,
 )
 from ..utils.log import get_logger
 import secrets
@@ -423,7 +427,7 @@ class KairoAuth:
     @staticmethod
     async def require_access_or_api_key(request: Request) -> None:
         """依赖函数：允许使用 Access Token 或永久 API_KEY 访问。
-        
+
         - 从 Header: X-API-Key 或 Query: api_key 读取 API_KEY；如匹配则放行并注入一个 API_KEY 主体。
         - 否则按原 require_access_token 流程校验 Access Token。
         """
@@ -442,4 +446,184 @@ class KairoAuth:
             return
         # 回退到 Access Token 校验
         await KairoAuth.require_access_token(request)
+
+    # =========================
+    # 登录口令加密上传与后端解密支持
+    # =========================
+    @staticmethod
+    def _load_rsa_private_key():
+        """加载 RSA 私钥用于密码解密。
+        
+        支持两种配置方式：
+        - AUTH_RSA_PRIVATE_KEY_FILE：指向私钥 PEM 文件路径
+        - AUTH_RSA_PRIVATE_KEY：环境变量直接存放 PEM 字符串
+        可选：AUTH_RSA_PRIVATE_KEY_PASSPHRASE 指定私钥口令
+        返回 cryptography 的私钥对象；如未配置或加载失败，返回 None。
+        """
+        pem_path = os.getenv("AUTH_RSA_PRIVATE_KEY_FILE")
+        pem_inline = os.getenv("AUTH_RSA_PRIVATE_KEY")
+        passphrase = os.getenv("AUTH_RSA_PRIVATE_KEY_PASSPHRASE")
+        pem_bytes = None
+        try:
+            if pem_path and os.path.exists(pem_path):
+                with open(pem_path, "rb") as f:
+                    pem_bytes = f.read()
+            elif pem_inline:
+                pem_bytes = pem_inline.encode()
+            if not pem_bytes:
+                return None
+            key = serialization.load_pem_private_key(
+                pem_bytes,
+                password=(passphrase.encode() if passphrase else None)
+            )
+            return key
+        except Exception as e:
+            logger.warning(f"加载 RSA 私钥失败: {e}")
+            return None
+
+    @staticmethod
+    def get_rsa_public_key_pem() -> Optional[str]:
+        """返回 RSA 公钥 PEM（SubjectPublicKeyInfo），用于前端加密。
+        
+        依赖私钥存在以派生公钥；如未配置或失败，返回 None。
+        """
+        try:
+            private_key = KairoAuth._load_rsa_private_key()
+            if private_key is None:
+                return None
+            public_key = private_key.public_key()
+            pem = public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+            return pem.decode("utf-8")
+        except Exception as e:
+            logger.warning(f"生成 RSA 公钥失败: {e}")
+            return None
+
+    @staticmethod
+    def _load_aes_secret_key() -> Optional[bytes]:
+        """加载 AES-GCM 的共享密钥（Base64 编码）。
+        
+        环境变量：LOGIN_PASSWORD_SECRET_KEY（Base64）
+        要求密钥长度为 16/24/32 字节（分别对应 AES-128/192/256）。
+        返回 bytes；无或错误时返回 None。
+        """
+        k_b64 = os.getenv("LOGIN_PASSWORD_SECRET_KEY")
+        if not k_b64:
+            return None
+        try:
+            key = base64.b64decode(k_b64)
+            if len(key) not in (16, 24, 32):
+                logger.warning("LOGIN_PASSWORD_SECRET_KEY 长度非法，需 16/24/32 字节（Base64）")
+                return None
+            return key
+        except Exception as e:
+            logger.warning(f"解析 LOGIN_PASSWORD_SECRET_KEY 失败: {e}")
+            return None
+
+    @staticmethod
+    def decrypt_password_if_encrypted(cipher_text: str) -> str:
+        """解密前端加密上传的密码（支持 RSA 或 AES-GCM），否则原样返回。
+        
+        配置：
+        - LOGIN_PASSWORD_ENCRYPTION=rsa|aes|none（默认 none）
+        - LOGIN_PASSWORD_REQUIRE_ENCRYPTION=true|false（默认 false；true 时解密失败直接拒绝登录）
+        - RSA：AUTH_RSA_PRIVATE_KEY_FILE / AUTH_RSA_PRIVATE_KEY / AUTH_RSA_PRIVATE_KEY_PASSPHRASE
+        - AES-GCM：LOGIN_PASSWORD_SECRET_KEY（Base64，16/24/32 字节）
+        输入：
+        - cipher_text：密码字符串；若以 "rsa:" 或 "aes:" 前缀或配置指定模式，则尝试解密
+        返回：明文密码字符串；严格模式下失败抛出 KCAUTH_LOGIN_FAILED。
+        """
+        if not isinstance(cipher_text, str):
+            return cipher_text
+        enc_mode = os.getenv("LOGIN_PASSWORD_ENCRYPTION", "none").lower()
+        require_enc = os.getenv("LOGIN_PASSWORD_REQUIRE_ENCRYPTION", "false").lower() in ("1", "true", "yes", "on")
+        force_rsa = enc_mode == "rsa" or cipher_text.startswith("rsa:") or cipher_text.startswith("RSA:")
+        force_aes = enc_mode == "aes" or cipher_text.startswith("aes:") or cipher_text.startswith("AES:")
+
+        # AES-GCM 分支（共享密钥）
+        if force_aes:
+            # 去除前缀
+            remain = cipher_text.split(":", 1)[1] if cipher_text.lower().startswith("aes:") else cipher_text
+            # 支持两种格式：
+            # 1) 聚合 Base64：base64(nonce(12) + ciphertext + tag(16))
+            # 2) 分段：nonce_b64:cipher_b64:tag_b64
+            nonce = ct = tag = None
+            try:
+                if ":" in remain:
+                    parts = remain.split(":")
+                    if len(parts) != 3:
+                        raise ValueError("AES 密文格式错误，期望 3 段：nonce:cipher:tag")
+                    nonce = base64.b64decode(parts[0])
+                    ct = base64.b64decode(parts[1])
+                    tag = base64.b64decode(parts[2])
+                else:
+                    agg = base64.b64decode(remain)
+                    if len(agg) < 12 + 16:
+                        raise ValueError("AES 聚合密文过短")
+                    nonce = agg[:12]
+                    tag = agg[-16:]
+                    ct = agg[12:-16]
+            except Exception as e:
+                if require_enc:
+                    raise KCAUTH_LOGIN_FAILED.msg_format("AES 密文解析失败") from e
+                logger.warning(f"AES 密文解析失败: {e}")
+                return cipher_text
+
+            key = KairoAuth._load_aes_secret_key()
+            if key is None:
+                if require_enc:
+                    raise KCAUTH_LOGIN_FAILED.msg_format("未配置 AES 密钥，无法解密密码")
+                logger.warning("未配置 AES 密钥，无法解密密码，回退原文")
+                return cipher_text
+
+            try:
+                decryptor = Cipher(algorithms.AES(key), modes.GCM(nonce, tag)).decryptor()
+                plain_bytes = decryptor.update(ct) + decryptor.finalize()
+                return plain_bytes.decode("utf-8", errors="strict")
+            except Exception as e:
+                if require_enc:
+                    raise KCAUTH_LOGIN_FAILED.msg_format("AES 密码解密失败") from e
+                logger.warning(f"AES 密码解密失败: {e}")
+                return cipher_text
+
+        # RSA-OAEP 分支（公私钥）
+        if force_rsa:
+            # 去除可选前缀
+            if cipher_text.lower().startswith("rsa:"):
+                cipher_b64 = cipher_text.split(":", 1)[1]
+            else:
+                cipher_b64 = cipher_text
+            private_key = KairoAuth._load_rsa_private_key()
+            if private_key is None:
+                if require_enc:
+                    raise KCAUTH_LOGIN_FAILED.msg_format("未配置 RSA 私钥，无法解密密码")
+                logger.warning("未配置 RSA 私钥，无法解密密码，回退为原文")
+                return cipher_text
+            try:
+                try:
+                    cipher_bytes = base64.b64decode(cipher_b64)
+                except Exception:
+                    padding_len = (-len(cipher_b64)) % 4
+                    cipher_bytes = base64.urlsafe_b64decode(cipher_b64 + ("=" * padding_len))
+                plain_bytes = private_key.decrypt(
+                    cipher_bytes,
+                    padding.OAEP(
+                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                        algorithm=hashes.SHA256(),
+                        label=None,
+                    ),
+                )
+                return plain_bytes.decode("utf-8", errors="strict")
+            except Exception as e:
+                if require_enc:
+                    raise KCAUTH_LOGIN_FAILED.msg_format("RSA 密码解密失败") from e
+                logger.warning(f"RSA 密码解密失败: {e}")
+                return cipher_text
+
+        # 未触发任何加密模式
+        if require_enc:
+            raise KCAUTH_LOGIN_FAILED.msg_format("必须使用加密密码上传")
+        return cipher_text
 

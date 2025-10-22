@@ -10,11 +10,22 @@ from KairoCore.common.errors import (
 
 router = kcRouter(tags=["认证"])
 
+@router.get("/login_public_key")
+async def login_public_key() -> Dict[str, Any]:
+    """返回用于前端加密登录密码的 RSA 公钥（如已配置）。"""
+    pem = KairoAuth.get_rsa_public_key_pem()
+    if not pem:
+        return kQuery.to_response(data=None, msg="RSA 未配置")
+    return kQuery.to_response(data={"public_key_pem": pem}, msg="ok")
+
 @router.post("/login")
 async def login(body: LoginBody) -> Dict[str, Any]:
     async def _do():
+        # 解密加密上传的密码（如启用 RSA 或以前缀标识）。未配置则原样返回。
+        decrypted_password = KairoAuth.decrypt_password_if_encrypted(body.password)
+
         # 演示用途：这里应替换为真实的用户校验与租户/角色加载
-        if not body.username or not body.password:
+        if not body.username or not decrypted_password:
             raise KCAUTH_LOGIN_FAILED
 
         roles = body.roles or ["user"]
