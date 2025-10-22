@@ -50,3 +50,22 @@ async def upload_base64(body: Base64Body):
         KCFU_BASE64_UPLOAD_FAIL_ERROR,
     )
     return kQuery.to_response(data=result, msg="上传成功")
+
+class DownloadQuery(BaseModel):
+    path: str = Field(description="服务器本地已保存的文件路径")
+    name: Optional[str] = Field(default=None, description="下载时展示的文件名（可选）")
+    inline: Optional[bool] = Field(default=False, description="是否内联显示（默认作为附件下载）")
+
+@router.get("/download")
+async def download_file(query: DownloadQuery):
+    """
+    通过接口将服务器本地文件下载到用户电脑。
+    返回 FileResponse，浏览器将触发下载。
+    """
+    uploader = KcUploader(default_target_dir="/tmp")
+    # 构建下载响应（支持自定义下载文件名、是否内联显示）
+    return await uploader.build_download_response(
+        src_path=query.path,
+        download_name=query.name,
+        inline=query.inline,
+    )

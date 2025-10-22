@@ -10,6 +10,7 @@ from .utils.kc_timer import Ktimer
 from .utils.kc_re import KcReTool
 from .utils.kc_http import KcHttpSession
 from .utils.kc_upload import KcUploader
+from .utils.auth import KairoAuth
 
 kQuery = QueryResponse()
 
@@ -29,4 +30,5 @@ __all__ = [
     "KcReTool",
     "KcHttpSession",
     "KcUploader",
+    "KairoAuth",
 ]

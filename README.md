@@ -102,9 +102,12 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 
 ## 📚 文档和资源
 
-- [📖 项目结构说明](UseDoc.md) - 详细的项目结构说明
-- [🛠️ 代码自动生成](CodeGenerateDoc.md) - 代码生成器指南
+- [📖 项目结构说明](docs/UseDoc.md) - 详细的项目结构说明
+- [🛠️ 代码自动生成](docs/CodeGenerateDoc.md) - 代码生成器指南
 - [🔖 项目具体示例](example/your_project_name) - 项目具体示例
+- [🔐 权限认证使用说明](docs/TokenUseDoc.md) - 权限认证使用指南
+- [📤 文件上传使用说明](docs/FileUploadDoc.md) - 文件上传接口使用指南
+- [🌐 HTTP 会话使用说明](docs/HttpSessionDoc.md) - KcHttpSession 调用指南
 
 
 ---

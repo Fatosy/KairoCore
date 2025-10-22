@@ -50,3 +50,15 @@ KCFU_BASE64_UPLOAD_FAIL_ERROR = Panic(10091, "Base64 上传失败", HttpStatusCo
 # kc_panic 辅助方法异常 业务代码 10100 ~ 10109
 KCP_EXEC_AWAITABLE_TYPE_ERROR = Panic(10100, "exec_with_route_error: awaitable 参数必须是可等待对象", HttpStatusCode.BAD_REQUEST)
 KCP_EXEC_PANIC_CONST_TYPE_ERROR = Panic(10101, "exec_with_route_error: error_const 参数必须是 Panic 实例", HttpStatusCode.BAD_REQUEST)
+
+# kc_auth 异常 业务代码 10110 ~ 10129
+KCAUTH_LOGIN_FAILED = Panic(10110, "登录失败", HttpStatusCode.UNAUTHORIZED)
+KCAUTH_TOKEN_INVALID = Panic(10111, "令牌无效", HttpStatusCode.UNAUTHORIZED)
+KCAUTH_TOKEN_EXPIRED = Panic(10112, "令牌已过期", HttpStatusCode.UNAUTHORIZED)
+KCAUTH_REFRESH_INVALID = Panic(10113, "刷新令牌无效", HttpStatusCode.UNAUTHORIZED)
+KCAUTH_REFRESH_EXPIRED = Panic(10114, "刷新令牌已过期", HttpStatusCode.UNAUTHORIZED)
+KCAUTH_TOKEN_REVOKED = Panic(10115, "令牌已撤销", HttpStatusCode.UNAUTHORIZED)
+KCAUTH_PERMISSION_DENIED = Panic(10116, "权限不足", HttpStatusCode.FORBIDDEN)
+KCAUTH_TENANT_REQUIRED = Panic(10117, "需要租户信息", HttpStatusCode.FORBIDDEN)
+KCAUTH_ROLE_REQUIRED = Panic(10118, "需要角色权限", HttpStatusCode.FORBIDDEN)
+KCAUTH_CONFIG_ERROR = Panic(10119, "认证配置错误，请检查环境变量", HttpStatusCode.INTERNAL_SERVER_ERROR)
