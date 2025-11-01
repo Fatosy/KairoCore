@@ -2,6 +2,8 @@ import os
 import importlib.util
 import inspect
 import functools
+from fastapi import FastAPI as KarioCore
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Any, Callable, get_type_hints, Optional
 from fastapi import FastAPI, APIRouter, params
 from fastapi.responses import FileResponse
@@ -17,6 +19,21 @@ PARAM_TO_DEPENDENCY_TYPE = {
     "body": params.Body,
     "file": params.File,
 }
+
+def add_cors_middleware(app: KarioCore) -> None:
+    """
+    为应用添加CORS中间件以解决跨域问题
+    
+    Args:
+        app (KarioCore): KairoCore应用实例
+    """
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # 在生产环境中应该指定具体的域名
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 def _create_enforced_wrapper(original_func: Callable, allowed_param_names: set):
     """

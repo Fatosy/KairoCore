@@ -6,21 +6,26 @@ from .utils.panic import register_exception_handlers
 from .utils.router import (
     register_routes, 
     print_registered_routes,
-    create_init_router
+    create_init_router,
+    add_cors_middleware
 )
 from .utils.log import get_logger
 
 logger = get_logger()
+
 
 def run_kairo(app_name: str, app_port: int=8000, app_host: str="0.0.0.0") -> KarioCore:
     """
     创建并配置 KairoCore 应用实例
     
     Returns:
-        KairoCore: 配置好的 KairoCore 应用实例
+        KarioCore: 配置好的 KairoCore 应用实例
     """
     load_dotenv()
     app = KarioCore()
+
+    # 添加CORS中间件以解决跨域问题
+    add_cors_middleware(app)
 
     # 注册初始化路由
     create_init_router(app)
