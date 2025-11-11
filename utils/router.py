@@ -5,20 +5,37 @@ import functools
 from fastapi import FastAPI as KarioCore
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Any, Callable, get_type_hints, Optional
-from fastapi import FastAPI, APIRouter, params
+from fastapi import FastAPI, APIRouter, params, Request
 from fastapi.responses import FileResponse
 from ..utils.panic import Panic
 from ..utils.log import get_logger
 
 app_logger = get_logger()
 # --- 定义允许的参数名称 ---
-ALLOWED_PARAM_NAMES = {"query", "body", "file"}
+ALLOWED_PARAM_NAMES = {"query", "body", "file", "xml"}
 # --- 定义参数到 FastAPI 依赖类型的映射 ---
 PARAM_TO_DEPENDENCY_TYPE = {
     "query": params.Query,
     "body": params.Body,
     "file": params.File,
 }
+
+# 提供一个依赖，用于从原始请求体中提取 XML 文本内容
+async def _extract_xml_body(request: Request) -> str:
+    try:
+        body_bytes = await request.body()
+        # 尝试以 UTF-8 解码；如果请求以其他编码发送，客户端应确保正确的编码
+        xml_text = body_bytes.decode("utf-8", errors="ignore")
+        return xml_text
+    except Exception as e:
+        app_logger.error(f"读取XML请求体失败: {e}", exc_info=True)
+        # 使用 Panic 统一异常处理
+        raise Panic(
+            code=400,
+            msg="读取XML请求体失败",
+            error=str(e),
+            data=None,
+        )
 
 def add_cors_middleware(app: KarioCore) -> None:
     """
@@ -60,14 +77,23 @@ def _create_enforced_wrapper(original_func: Callable, allowed_param_names: set):
             # 获取对应的 FastAPI 依赖类型，如果没有则默认为 Query
             dependency_type = PARAM_TO_DEPENDENCY_TYPE.get(param_name, params.Query)
 
-            # 创建新的参数，注入 FastAPI 依赖 (Query, Body)
-            new_param = inspect.Parameter(
-                param_name,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                # 使用原始参数的默认值，包装在 FastAPI 依赖中
-                default=dependency_type(default=original_param.default),
-                annotation=param_type
-            )
+            # 针对 xml 参数，使用自定义依赖从请求体读取原始 XML 文本
+            if param_name == "xml":
+                new_param = inspect.Parameter(
+                    param_name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=params.Depends(_extract_xml_body),
+                    annotation=param_type
+                )
+            else:
+                # 创建新的参数，注入 FastAPI 依赖 (Query, Body, File)
+                new_param = inspect.Parameter(
+                    param_name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    # 使用原始参数的默认值，包装在 FastAPI 依赖中
+                    default=dependency_type(default=original_param.default),
+                    annotation=param_type
+                )
             new_params.append(new_param)
         # else: 忽略不允许的参数（理论上 enforce_signature 已经检查过，这里不会出现）
 
