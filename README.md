@@ -108,7 +108,7 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 - [🔐 权限认证使用说明](docs/TokenUseDoc.md) - 权限认证使用指南
 - [📤 文件上传使用说明](docs/FileUploadDoc.md) - 文件上传接口使用指南
 - [🌐 HTTP 会话使用说明](docs/HttpSessionDoc.md) - KcHttpSession 调用指南
-
+- [🔄 RabbitMQ 客户端使用说明](docs/RabbitMQClientDoc.md) - RabbitMQ 客户端调用指南
 
 ---
 

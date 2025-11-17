@@ -34,6 +34,13 @@ KCHT_TIMEOUT_ERROR = Panic(10072, "http请求超时，请检查！")
 KCHT_STATUS_ERROR = Panic(10073, "http状态码异常，请检查！")
 KCHT_PARSE_ERROR = Panic(10074, "http响应解析异常，请检查！")
 
+# kc_rabbitmq 异常 业务代码 10075 ~ 10089（预留部分给上传模块使用）
+KCRM_CONNECT_ERROR = Panic(10075, "rabbitmq连接异常，请检查！")
+KCRM_CHANNEL_ERROR = Panic(10076, "rabbitmq通道异常，请检查！")
+KCRM_DECLARE_ERROR = Panic(10077, "rabbitmq交换机/队列声明异常，请检查！")
+KCRM_PUBLISH_ERROR = Panic(10078, "rabbitmq消息发布异常，请检查！")
+KCRM_CONSUME_ERROR = Panic(10079, "rabbitmq消费异常，请检查！")
+
 # kc_upload 异常 业务代码 10080 ~ 10089
 KCU_SAVE_DIR_EMPTY_ERROR = Panic(10080, "保存目录为空", HttpStatusCode.BAD_REQUEST)
 KCU_MKDIR_ERROR = Panic(10081, "创建目录失败", HttpStatusCode.INTERNAL_SERVER_ERROR)

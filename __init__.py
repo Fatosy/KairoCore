@@ -11,6 +11,8 @@ from .utils.kc_re import KcReTool
 from .utils.kc_http import KcHttpSession
 from .utils.kc_upload import KcUploader
 from .utils.auth import KairoAuth
+from .utils.wx_plugins import wx as KairoWxPlugin
+from .utils.kc_rabbitmq import RabbitMQClient, PresenceManager
 
 kQuery = QueryResponse()
 
@@ -31,4 +33,7 @@ __all__ = [
     "KcHttpSession",
     "KcUploader",
     "KairoAuth",
+    "KairoWxPlugin"
+    ,"RabbitMQClient"
+    ,"PresenceManager"
 ]
