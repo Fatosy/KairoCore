@@ -13,27 +13,30 @@ from .utils.kc_upload import KcUploader
 from .utils.auth import KairoAuth
 from .utils.wx_plugins import wx as KairoWxPlugin
 from .utils.kc_rabbitmq import RabbitMQClient, PresenceManager
+from .utils.kc_taskiq import TaskiqClient, KcTaskiqFunc
 
 kQuery = QueryResponse()
 
 __all__ = [
-    "run_kairo",
-    "kcRouter", 
-    "Panic", 
-    "exec_with_route_error",
-    "kQuery", 
-    "get_logger", 
-    "RedisClient", 
-    "ZkClient", 
-    "MysqlSession" , 
-    "AsyncMysqlSession",
-    "SqlTool",
-    "Ktimer",
-    "KcReTool",
-    "KcHttpSession",
-    "KcUploader",
-    "KairoAuth",
-    "KairoWxPlugin"
+    "run_kairo"
+    ,"kcRouter"
+    ,"Panic"
+    ,"exec_with_route_error"
+    ,"kQuery"
+    ,"get_logger"
+    ,"RedisClient"
+    ,"ZkClient"
+    ,"MysqlSession"
+    ,"AsyncMysqlSession"
+    ,"SqlTool"
+    ,"Ktimer"
+    ,"KcReTool"
+    ,"KcHttpSession"
+    ,"KcUploader"
+    ,"KairoAuth"
+    ,"KairoWxPlugin"
     ,"RabbitMQClient"
     ,"PresenceManager"
+    ,"TaskiqClient"
+    ,"KcTaskiqFunc"
 ]
