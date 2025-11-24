@@ -103,6 +103,7 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 ## 📚 文档和资源
 
 - [📖 项目结构说明](docs/UseDoc.md) - 详细的项目结构说明
+- [🚀 快速开始](docs/KairoInitDoc.md) - 快速初始化项目
 - [🛠️ 代码自动生成](docs/CodeGenerateDoc.md) - 代码生成器指南
 - [🔖 项目具体示例](example/your_project_name) - 项目具体示例
 - [🔐 权限认证使用说明](docs/TokenUseDoc.md) - 权限认证使用指南
@@ -113,7 +114,7 @@ KairoCore 的目标，不是替代 FastAPI —— 而是**站在它的肩膀上�
 
 ---
 
-## 💡 如何贡献
+## �💡 如何贡献
 
 非常欢迎你的加入！[提一个 Issue](https://github.com/vbenjs/vue-vben-admin/issues/new) 或者提交一个 Pull Request。
 
