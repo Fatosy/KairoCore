@@ -93,7 +93,7 @@ class KcHttpSession:
                 timeout=self.timeout,
                 headers=self.headers,
                 verify=self.verify,
-                proxies=self.proxies,
+                proxy=self.proxies,
                 limits=limits,
                 follow_redirects=True,  # 默认为允许跟随重定向
             )
