@@ -20,6 +20,7 @@ import uuid
 import hashlib
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from typing import Any, Dict, List, Optional, Tuple
 from contextvars import ContextVar
 
@@ -566,7 +567,7 @@ class KairoAuth:
                     ct = agg[12:-16]
             except Exception as e:
                 if require_enc:
-                    raise KCAUTH_LOGIN_FAILED.msg_format("AES 密文解析失败") from e
+                    raise KCAUTH_LOGIN_FAILED.msg_format(f"AES 密文解析失败, {str(e)}")
                 logger.warning(f"AES 密文解析失败: {e}")
                 return cipher_text
 
@@ -583,7 +584,7 @@ class KairoAuth:
                 return plain_bytes.decode("utf-8", errors="strict")
             except Exception as e:
                 if require_enc:
-                    raise KCAUTH_LOGIN_FAILED.msg_format("AES 密码解密失败") from e
+                    raise KCAUTH_LOGIN_FAILED.msg_format(f"AES 密码解密失败, {str(e)}")
                 logger.warning(f"AES 密码解密失败: {e}")
                 return cipher_text
 
@@ -617,7 +618,7 @@ class KairoAuth:
                 return plain_bytes.decode("utf-8", errors="strict")
             except Exception as e:
                 if require_enc:
-                    raise KCAUTH_LOGIN_FAILED.msg_format("RSA 密码解密失败") from e
+                    raise KCAUTH_LOGIN_FAILED.msg_format(f"RSA 密码解密失败, {str(e)}")
                 logger.warning(f"RSA 密码解密失败: {e}")
                 return cipher_text
 
