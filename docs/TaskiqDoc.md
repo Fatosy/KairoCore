@@ -48,7 +48,12 @@ kc_taskiq.py 会在导入时尝试多路径加载 .env（find_dotenv()/usecwd/Ka
   - `TASKIQ_REDIS_SSL`（true/1/yes 使用 rediss://）
   - 兼容通用变量：`REDIS_HOST`/`REDIS_PORT`/`REDIS_DB`/`REDIS_USERNAME`/`REDIS_PASSWORD`
 
+- 在KairoCore项目中，需要额外开启终端运行broker
+  - `PYTHONPATH=/home/your_project_name TASKIQ_REDIS_URL=redis://:123456@127.0.0.1:6379/10 taskiq worker KairoCore.utils.kc_taskiq:broker --fs-discover`
+  - 因为在KairoCore项目中不指定项目目录的话，会报错
+
 - 队列名：`TASKIQ_QUEUE_NAME=kc_taskiq_queue`
+
 
 快速自检：
 
