@@ -23,6 +23,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from typing import Any, Dict, List, Optional, Tuple
 from contextvars import ContextVar
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from fastapi import Request
 from ..utils.panic import Panic
@@ -627,3 +628,80 @@ class KairoAuth:
             raise KCAUTH_LOGIN_FAILED.msg_format("必须使用加密密码上传")
         return cipher_text
 
+    @staticmethod
+    async def require_no_login_x_key(request: Request) -> None:
+        """依赖函数：允许使用无登录场景下的 X-Key 访问。
+
+        - 从 Header: X-Key 或 Query: x_key 读取 X-Key；如匹配则放行并注入一个 X-Key 主体。
+        - 否则按原 require_access_token 流程校验 Access Token。
+        """
+        # 先尝试 X-Key
+        x_key = request.headers.get("X-Key") or request.query_params.get("x_key")
+        no_login_x_key = os.getenv("NO_LOGIN_X_KEY")
+        no_login_x_pwd = os.getenv("NO_LOGIN_X_PWD")
+        if no_login_x_key is None or no_login_x_pwd is None or x_key is None:
+            raise KCAUTH_LOGIN_FAILED.msg_format("未配置X-Key")
+        try:
+            decrypt_no_login_x_key = KairoAuth.decrypt_no_login_x_key(x_key, no_login_x_pwd)
+        except Exception as e:
+            raise KCAUTH_LOGIN_FAILED.msg_format(f"X-Key 解密失败, {str(e)}")
+        if decrypt_no_login_x_key != no_login_x_key:
+            raise KCAUTH_LOGIN_FAILED.msg_format("X-Key 校验失败")
+
+
+    @staticmethod
+    def decrypt_no_login_x_key(cipher_text: str, password: str) -> str:
+        """ 
+            解密无登录场景下的 X-Key 
+            :param combined_data_b64: Base64 encoded combined data (salt + iv + ciphertext).
+            :param password: The original password used for encryption.
+            :return: Decrypted plaintext string.
+        """
+        # Decode the Base64 input
+        combined_data = base64.b64decode(cipher_text)
+
+        # Extract components
+        SALT_LENGTH = 16
+        IV_LENGTH = 12
+        salt = combined_data[:SALT_LENGTH]
+        iv = combined_data[SALT_LENGTH:SALT_LENGTH + IV_LENGTH]
+        ciphertext_with_tag = combined_data[SALT_LENGTH + IV_LENGTH:]
+
+        # Derive the same key using PBKDF2 (same parameters as frontend)
+        # 前端逻辑：const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        # 因此后端也需要先对密码进行 SHA-256 哈希
+        password_hash = hashlib.sha256(password.encode()).digest()
+        key_material = hashlib.pbkdf2_hmac('sha256', password_hash, salt, 100000, dklen=32)
+        
+        # Create AES-GCM cipher and decrypt
+        aesgcm = AESGCM(key_material)
+        try:
+            plaintext_bytes = aesgcm.decrypt(iv, ciphertext_with_tag, None)
+            plaintext = plaintext_bytes.decode('utf-8')
+            
+            # 验证有效期 (1分钟)
+            try:
+                data = json.loads(plaintext)
+                if isinstance(data, dict) and "t" in data and "v" in data:
+                    timestamp = data["t"]
+                    value = data["v"]
+                    
+                    # 当前时间 (ms)
+                    now = time.time() * 1000
+                    # 检查是否过期 (60000ms = 1min)
+                    if now - timestamp > 60000:
+                        raise ValueError(f"Token expired (server_time={now}, client_time={timestamp})")
+                    
+                    # 可选：防止未来时间过大 (例如允许 1 分钟的时钟偏差)
+                    if timestamp - now > 60000:
+                         raise ValueError("Token time is too far in the future")
+
+                    return value
+                else:
+                    raise ValueError("Invalid payload structure")
+            except json.JSONDecodeError:
+                raise ValueError("Invalid payload format (JSON expected)")
+
+        except Exception as e:
+            # Handle decryption errors (wrong key, corrupted data, etc.)
+            raise ValueError(f"Decryption failed: {str(e)}") 

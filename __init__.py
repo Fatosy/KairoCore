@@ -1,4 +1,5 @@
 from fastapi import APIRouter as kcRouter
+from fastapi import Depends as kcDepends
 from .app import run_kairo
 from .utils.panic import Panic, QueryResponse, exec_with_route_error
 from .utils.log import get_logger
@@ -39,4 +40,5 @@ __all__ = [
     ,"PresenceManager"
     ,"TaskiqClient"
     ,"KcTaskiqFunc"
+    ,"kcDepends"
 ]
