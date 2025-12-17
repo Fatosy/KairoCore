@@ -690,18 +690,17 @@ class KairoAuth:
                     now = time.time() * 1000
                     # 检查是否过期 (60000ms = 1min)
                     if now - timestamp > 60000:
-                        raise ValueError(f"Token expired (server_time={now}, client_time={timestamp})")
+                        raise ValueError(f"X-Key 已过期 (server_time={now}, client_time={timestamp})")
                     
                     # 可选：防止未来时间过大 (例如允许 1 分钟的时钟偏差)
                     if timestamp - now > 60000:
-                         raise ValueError("Token time is too far in the future")
+                         raise ValueError("X-Key 时间戳异常 (时间偏移超过 1 分钟)")
 
                     return value
                 else:
-                    raise ValueError("Invalid payload structure")
+                    raise ValueError("X-Key 格式错误 (缺少 t 或 v 字段)")
             except json.JSONDecodeError:
-                raise ValueError("Invalid payload format (JSON expected)")
+                raise ValueError("X-Key 格式错误 (JSON 格式错误)")
 
         except Exception as e:
-            # Handle decryption errors (wrong key, corrupted data, etc.)
-            raise ValueError(f"Decryption failed: {str(e)}") 
+            raise ValueError(f"X-Key 解密失败: {str(e)}") 
