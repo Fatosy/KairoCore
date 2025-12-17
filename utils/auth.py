@@ -38,6 +38,7 @@ from ..common.errors import (
     KCAUTH_ROLE_REQUIRED,
     KCAUTH_CONFIG_ERROR,
     KCAUTH_LOGIN_FAILED,
+    KCAUTH_X_KEY_ERROR,
 )
 from ..utils.log import get_logger
 import secrets
@@ -640,13 +641,13 @@ class KairoAuth:
         no_login_x_key = os.getenv("NO_LOGIN_X_KEY")
         no_login_x_pwd = os.getenv("NO_LOGIN_X_PWD")
         if no_login_x_key is None or no_login_x_pwd is None or x_key is None:
-            raise KCAUTH_LOGIN_FAILED.msg_format("未配置X-Key")
+            raise KCAUTH_X_KEY_ERROR.msg_format("未配置X-Key")
         try:
             decrypt_no_login_x_key = KairoAuth.decrypt_no_login_x_key(x_key, no_login_x_pwd)
         except Exception as e:
-            raise KCAUTH_LOGIN_FAILED.msg_format(f"X-Key 解密失败, {str(e)}")
+            raise KCAUTH_X_KEY_ERROR.msg_format(f"X-Key 解密失败, {str(e)}")
         if decrypt_no_login_x_key != no_login_x_key:
-            raise KCAUTH_LOGIN_FAILED.msg_format("X-Key 校验失败")
+            raise KCAUTH_X_KEY_ERROR.msg_format("X-Key 校验失败")
 
 
     @staticmethod
