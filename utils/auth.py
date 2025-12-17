@@ -703,4 +703,4 @@ class KairoAuth:
                 raise ValueError("X-Key 格式错误 (JSON 格式错误)")
 
         except Exception as e:
-            raise ValueError(f"X-Key 解密失败: {str(e)}") 
+            raise ValueError(f"{str(e)}") 
