@@ -260,6 +260,10 @@ def register_routes2(app: FastAPI, base_prefix: str = "", actions_dir: str = "ac
                     continue
 
                 # 检查模块中是否有 router
+                enabled = getattr(module, 'ENABLE_ROUTER', True)
+                if not enabled:
+                    app_logger.info(f"模块 {full_module_name} 设置为不注册路由 (ENABLE_ROUTER=False)，跳过。")
+                    continue
                 router = getattr(module, 'router', None)
                 if isinstance(router, APIRouter):
                     try:
@@ -343,6 +347,11 @@ def register_routes(app: FastAPI, base_prefix: str = "", actions_dir: str = "act
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             app_logger.debug(f"成功导入模块: {full_module_name}")
+
+            enabled = getattr(module, 'ENABLE_ROUTER', True)
+            if not enabled:
+                app_logger.info(f"模块 {full_module_name} 设置为不注册路由 (ENABLE_ROUTER=False)，跳过。")
+                continue
 
         except Exception as e:
             error_msg = f"从 {router_file} 导入模块失败: {e}"

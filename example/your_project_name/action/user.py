@@ -11,6 +11,9 @@ from schema.user import (
     UserInfoOptionsGettor
 )
 
+# 禁用路由
+ENABLE_ROUTER = False
+
 # 创建一个 APIRouter 实例
 # tags 用于 API 文档分组
 router = kcRouter(tags=["用户管理"])
@@ -54,5 +57,4 @@ async def query_info_options(query: UserInfoOptionsGettor):
     """获取用户信息options"""
     rows, total = await UserDomian.query_info_options(query)
     return kQuery.to_response(rows, total, msg="查询成功")
-
 

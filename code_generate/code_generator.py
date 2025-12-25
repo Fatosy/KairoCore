@@ -26,6 +26,8 @@ from schema.{{route_name}} import (
     {{RouteName}}InfoOptionsGettor
 )
 
+ENABLE_ROUTER = True
+
 # 创建一个 APIRouter 实例
 # tags 用于 API 文档分组
 router = kcRouter(tags=["{{route_name_cn}}管理"])
