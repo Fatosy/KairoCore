@@ -2,6 +2,9 @@ import os
 import importlib.util
 import inspect
 import functools
+import secrets
+import base64
+import time
 from fastapi import FastAPI as KarioCore
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Any, Callable, get_type_hints, Optional
@@ -195,106 +198,6 @@ def enforce_signature(router: APIRouter):
     return router
 
 
-def register_routes2(app: FastAPI, base_prefix: str = "", actions_dir: str = "action"):
-    """
-    扫描 'actions_dir' 目录并自动注册其中定义的 FastAPI 路由器 (APIRouter)。
-    每个子目录被视为一个模块，该模块下应包含一个定义了 'router' 的 Python 文件。
-    该函数会扫描子目录中的所有 .py 文件来查找 router 实例。
-    在注册前会强制执行函数签名检查 (enforce_signature)。
-
-    Args:
-        app (FastAPI): FastAPI 应用实例。
-        actions_dir (str): 包含路由模块的根目录名称。默认为 "action"。
-        base_prefix (str): 应用于所有注册路由的全局前缀。默认为空字符串。
-                           注意：确保 base_prefix 格式正确，例如以 '/' 开头。
-    """
-    app_logger.info(f"开始扫描 Action 目录: {actions_dir}")
-
-    if not os.path.isdir(actions_dir):
-        error_msg = f"未找到 Action 目录 '{actions_dir}'。"
-        app_logger.error(error_msg)
-        return
-
-    # 确保 base_prefix 格式正确 (以 '/' 开头，除非是空字符串)
-    normalized_base_prefix = base_prefix if base_prefix == "" or base_prefix.startswith('/') else f"/{base_prefix}"
-    normalized_base_prefix = normalized_base_prefix.rstrip('/') # 移除末尾的 '/' 以防重复
-    
-    for module_name in os.listdir(actions_dir):
-        module_path = os.path.join(actions_dir, module_name)
-        if os.path.isdir(module_path):
-            # app_logger.debug(f"正在扫描模块目录: {module_path}")
-            
-            # 查找模块目录中的所有 .py 文件
-            router_files = []
-            for file in os.listdir(module_path):
-                if file.endswith('.py') and file != '__init__.py':
-                    router_files.append(os.path.join(module_path, file))
-            
-            if not router_files:
-                app_logger.warning(f"在模块目录 {module_path} 中未找到 Python 文件")
-                continue
-                
-            # app_logger.debug(f"找到 {len(router_files)} 个候选文件: {router_files}")
-            
-            # 遍历所有 .py 文件查找 router
-            for router_file in router_files:
-                # app_logger.debug(f"正在检查文件: {router_file}")
-                
-                # 构造模块名
-                file_name_without_ext = os.path.splitext(os.path.basename(router_file))[0]
-                full_module_name = f"action.{module_name}.{file_name_without_ext}"
-                
-                try:
-                    spec = importlib.util.spec_from_file_location(full_module_name, router_file)
-                    if spec is None:
-                        app_logger.error(f"无法为文件 {router_file} 创建模块规范 (spec)。")
-                        continue
-                        
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
-                    # app_logger.debug(f"成功导入模块: {router_file}")
-                    
-                except Exception as e:
-                    error_msg = f"从 {router_file} 导入模块失败: {e}"
-                    app_logger.error(error_msg, exc_info=True)
-                    continue
-
-                # 检查模块中是否有 router
-                enabled = getattr(module, 'ENABLE_ROUTER', True)
-                if not enabled:
-                    app_logger.info(f"模块 {full_module_name} 设置为不注册路由 (ENABLE_ROUTER=False)，跳过。")
-                    continue
-                router = getattr(module, 'router', None)
-                if isinstance(router, APIRouter):
-                    try:
-                        # 强制执行函数签名检查
-                        enforce_signature(router)
-                        # 构造该模块的路由前缀
-                        module_prefix = f"/{module_name}"
-                        # 拼接完整前缀
-                        full_prefix = f"{normalized_base_prefix}{module_prefix}"
-                        app.include_router(router, prefix=full_prefix)
-                        success_msg = f"已注册（并强制执行签名）来自 {router_file} 的路由器，完整前缀为 {full_prefix}"
-                        # app_logger.info(success_msg)
-                        break  # 找到 router 后就不再继续查找
-                    except Panic:
-                        # 重新抛出 Panic 异常
-                        raise
-                    except Exception as e:
-                        error_msg = f"注册路由器 {router_file} 时失败: {e}"
-                        app_logger.error(error_msg, exc_info=True)
-                        raise RuntimeError(error_msg) from e
-                else:
-                    app_logger.debug(f"在 {router_file} 中未找到有效的 'router' (APIRouter 实例)")
-            
-            # 如果遍历完所有文件都没找到 router
-            if not isinstance(router, APIRouter):
-                warn_msg = f"在模块目录 {module_path} 中未找到有效的 'router' (APIRouter 实例)。"
-                app_logger.warning(warn_msg)
-
-    app_logger.info("Action 目录扫描和路由注册完成。")
-
-
 def register_routes(app: FastAPI, base_prefix: str = "", actions_dir: str = "action"):
     """
     扫描 'actions_dir' 目录并自动注册其中定义的 FastAPI 路由器 (APIRouter)。
@@ -455,6 +358,56 @@ def create_init_router(app: FastAPI):
             return FileResponse(default_favicon_path)
         else:
             return FileResponse(default_favicon_path)
+
+    @app.get("/generate/config/secret_key")
+    async def generate_secret_key():
+        """
+        生成用于 AES-GCM 加密的随机密钥。
+        
+        返回:
+            JSON 包含状态、生成的密钥（Base64 编码）和时间戳。
+            - secret_key: 32 字节随机数据的 Base64 编码，可直接用于 LOGIN_PASSWORD_SECRET_KEY 配置。
+            - jwt_secret: 64 字节随机数据的 Base64 编码，可直接用于 JWT_SECRET 配置。
+            - jwt_iss: 8 字节随机数据的十六进制编码，可直接用于 JWT_ISS 配置。
+            - jwt_aud: 8 字节随机数据的十六进制编码，可直接用于 JWT_AUD 配置。
+        """
+        try:
+            # 生成 32 字节的安全随机数（256位）
+            random_bytes = secrets.token_bytes(32)
+            # 转换为 Base64 字符串
+            secret_key = base64.b64encode(random_bytes).decode('utf-8')
+
+            # 生成 64 字节的安全随机数（512位），足够强度的 JWT 密钥
+            random_bytes = secrets.token_bytes(64)
+            # 使用 urlsafe_b64encode 避免 URL 中出现特殊字符，并去掉末尾的 padding
+            jwt_secret = base64.urlsafe_b64encode(random_bytes).decode('utf-8').rstrip('=')
+            jwt_iss = secrets.token_hex(8)
+            jwt_aud = secrets.token_hex(8)
+            # 生成随机的kc_api_key
+            kc_api_key = secrets.token_hex(16)
+            
+            app_logger.info("成功生成新的安全密钥和JWT配置")
+            
+            return {
+                "status": "success",
+                "data":{
+                    "login_password_secret_key": secret_key,
+                    "jwt_secret": jwt_secret,
+                    "jwt_iss": jwt_iss,
+                    "jwt_aud": jwt_aud,
+                    "kc_api_key": kc_api_key
+                },
+                "timestamp": int(time.time())
+            }
+        except Exception as e:
+            error_msg = f"生成密钥失败: {str(e)}"
+            app_logger.error(error_msg, exc_info=True)
+            return {
+                "status": "error", 
+                "message": "无法生成密钥，请检查服务器日志",
+                "timestamp": int(time.time())
+            }
+
 
 
 
