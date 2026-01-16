@@ -22,10 +22,10 @@ class MysqlSessionPool:
     def __init__(self):
         self.host = os.getenv('DB_HOST')
         self.user = os.getenv('DB_USER')
-        self.password = os.getenv('DB_PASSWORD')
+        self.password = os.getenv('DB_PASSWORD') or ""
         self.db = os.getenv('DB_NAME')
         self.port = int(os.getenv('DB_PORT'))
-        if not self.host or not self.user or not self.password or not self.db or not self.port:
+        if not self.host or not self.user or not self.db or not self.port:
             raise MQSN_INIT_ERROR
 
         # 连接池配置
@@ -223,11 +223,11 @@ class AsyncMysqlSessionPool:
 
         self.host = os.getenv('DB_HOST')
         self.user = os.getenv('DB_USER')
-        self.password = os.getenv('DB_PASSWORD')
+        self.password = os.getenv('DB_PASSWORD') or ""
         self.db = os.getenv('DB_NAME')
         self.port = int(os.getenv('DB_PORT', 3306)) # 默认端口 3306
 
-        if not all([self.host, self.user, self.password, self.db]):
+        if not all([self.host, self.user, self.db]):
             raise MQSN_INIT_ERROR("数据库连接参数缺失")
 
         # 连接池配置

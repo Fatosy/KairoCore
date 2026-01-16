@@ -49,7 +49,8 @@ def add_cors_middleware(app: KarioCore) -> None:
     """
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # 在生产环境中应该指定具体的域名
+        allow_origins=["*"],  # 允许所有来源
+        allow_origin_regex=r"https?://.*",  # 允许所有 http/https 来源
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
