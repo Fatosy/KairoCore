@@ -71,3 +71,4 @@ KCAUTH_TENANT_REQUIRED = Panic(10118, "需要租户信息", HttpStatusCode.FORBI
 KCAUTH_ROLE_REQUIRED = Panic(10119, "需要角色权限", HttpStatusCode.FORBIDDEN)
 KCAUTH_CONFIG_ERROR = Panic(10120, "认证配置错误，请检查环境变量", HttpStatusCode.INTERNAL_SERVER_ERROR)
 KCAUTH_X_KEY_ERROR = Panic(10121, "X-Key 错误，请检查", HttpStatusCode.UNAUTHORIZED)
+KCAUTH_WX_XCX_KEY_ERROR = Panic(10122, "Wx-Xcx-Key 错误，请检查", HttpStatusCode.UNAUTHORIZED)

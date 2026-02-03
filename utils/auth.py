@@ -24,6 +24,9 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from typing import Any, Dict, List, Optional, Tuple
 from contextvars import ContextVar
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+
 
 from fastapi import Request
 from ..utils.panic import Panic
@@ -39,6 +42,7 @@ from ..common.errors import (
     KCAUTH_CONFIG_ERROR,
     KCAUTH_LOGIN_FAILED,
     KCAUTH_X_KEY_ERROR,
+    KCAUTH_WX_XCX_KEY_ERROR
 )
 from ..utils.log import get_logger
 import secrets
@@ -648,6 +652,45 @@ class KairoAuth:
             raise KCAUTH_X_KEY_ERROR.msg_format(f"X-Key 解密失败, {str(e)}")
         if decrypt_no_login_x_key != no_login_x_key:
             raise KCAUTH_X_KEY_ERROR.msg_format("X-Key 校验失败")
+
+    @staticmethod
+    async def require_wx_xcx_key(request: Request) -> None:
+        """依赖函数：允许使用微信小程序场景下的 Wx-Xcx-Key 访问。
+
+        - 从 Header: Wx-Xcx-Key 或 Query: wx_xcx_key 读取 Key；如匹配则放行。
+        - 依赖环境变量 WX_XCX_KEY (目标值) 和 WX_XCX_PWD (解密密码)
+        """
+        # 先尝试 Wx-Xcx-Key
+        wx_key = request.headers.get("Wx-Xcx-Key") or request.query_params.get("wx_xcx_key")
+
+        target_key = os.getenv("WX_XCX_PASSWORD")
+        if target_key is None:
+            raise KCAUTH_WX_XCX_KEY_ERROR.msg_format("未配置 WX_XCX_PASSWORD")
+            
+        try:
+            # 复用 decrypt_wx_xcx_key，它包含了解密、JSON解析和时间戳校验
+            decrypt_key = KairoAuth.decrypt_wx_xcx_key(wx_key)
+        except Exception as e:
+            raise KCAUTH_WX_XCX_KEY_ERROR.msg_format(f"Wx-Xcx-Key 解密或校验失败: {str(e)}")
+            
+        if decrypt_key != target_key:
+            raise KCAUTH_WX_XCX_KEY_ERROR.msg_format("Wx-Xcx-Key 值不匹配")
+
+    @staticmethod
+    def decrypt_wx_xcx_key(cipher_text: str) -> str:
+        """
+            解密微信小程序场景下的 Wx-Xcx-Key 
+            :param cipher_text: Base64 encoded combined data (salt + iv + ciphertext).
+            :return: Decrypted plaintext string.
+        """
+        d_key = os.getenv('WX_XCX_KEY')
+        d_iv = os.getenv('WX_XCX_IV')
+        if d_key is None or d_iv is None:
+            raise KCAUTH_WX_XCX_KEY_ERROR.msg_format("未配置 WX_XCX_KEY 或 WX_XCX_IV")
+        ciphertext = base64.b64decode(cipher_text)
+        cipher = AES.new(d_key, AES.MODE_CBC, d_iv)
+        decrypted = cipher.decrypt(ciphertext)
+        return unpad(decrypted, AES.block_size).decode('utf-8')
 
 
     @staticmethod

@@ -386,6 +386,11 @@ def create_init_router(app: FastAPI):
             jwt_aud = secrets.token_hex(8)
             # 生成随机的kc_api_key
             kc_api_key = secrets.token_hex(16)
+
+            # 生成 AES-128-CBC 所需的 Key (16 bytes), IV (16 bytes) 和 Secret (32 bytes)
+            wxxcx_key = secrets.token_hex(16)
+            wxxcx_iv = secrets.token_hex(16)
+            wxxcx_secret = secrets.token_hex(32)
             
             app_logger.info("成功生成新的安全密钥和JWT配置")
             
@@ -396,7 +401,10 @@ def create_init_router(app: FastAPI):
                     "jwt_secret": jwt_secret,
                     "jwt_iss": jwt_iss,
                     "jwt_aud": jwt_aud,
-                    "kc_api_key": kc_api_key
+                    "kc_api_key": kc_api_key,
+                    "wxxcx_key": wxxcx_key,
+                    "wxxcx_iv": wxxcx_iv,
+                    "wxxcx_secret": wxxcx_secret
                 },
                 "timestamp": int(time.time())
             }
