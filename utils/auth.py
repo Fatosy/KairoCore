@@ -670,6 +670,8 @@ class KairoAuth:
         try:
             # 复用 decrypt_wx_xcx_key，它包含了解密、JSON解析和时间戳校验
             decrypt_key = KairoAuth.decrypt_wx_xcx_key(wx_key)
+        except Panic as p:
+            raise p
         except Exception as e:
             raise KCAUTH_WX_XCX_KEY_ERROR.msg_format(f"Wx-Xcx-Key 解密或校验失败: {str(e)}")
             
@@ -680,17 +682,124 @@ class KairoAuth:
     def decrypt_wx_xcx_key(cipher_text: str) -> str:
         """
             解密微信小程序场景下的 Wx-Xcx-Key 
-            :param cipher_text: Base64 encoded combined data (salt + iv + ciphertext).
+            支持两种模式：
+            1. 静态 IV 模式：密文仅包含加密数据，IV 从环境变量 WX_XCX_IV 读取
+            2. 动态 IV 模式：密文格式为 Base64(IV + EncryptedData)，前16字节为IV
+            :param cipher_text: Base64 encoded string.
             :return: Decrypted plaintext string.
         """
         d_key = os.getenv('WX_XCX_KEY')
+        if d_key is None:
+             raise KCAUTH_WX_XCX_KEY_ERROR.msg_format("未配置 WX_XCX_KEY")
+
+        # Key 处理 (支持 HEX/Base64/ASCII)
+        try:
+            if len(d_key) == 32:
+                try:
+                    key_bytes = bytes.fromhex(d_key)
+                except Exception:
+                    padding = "=" * (-len(d_key) % 4)
+                    key_bytes = base64.b64decode(d_key + padding)
+            elif len(d_key) == 16:
+                key_bytes = d_key.encode('utf-8')
+            else:
+                padding = "=" * (-len(d_key) % 4)
+                key_bytes = base64.b64decode(d_key + padding)
+        except Exception:
+            raise KCAUTH_WX_XCX_KEY_ERROR.msg_format("WX_XCX_KEY 格式错误")
+
+        if len(key_bytes) != 16:
+            raise KCAUTH_WX_XCX_KEY_ERROR.msg_format("WX_XCX_KEY 长度必须为16字节")
+
+        # 密文Base64解码
+        try:
+            raw_data = base64.b64decode(cipher_text)
+        except Exception:
+            padding = "=" * (-len(cipher_text) % 4)
+            raw_data = base64.urlsafe_b64decode(cipher_text + padding)
+
+        # 尝试解析 IV
         d_iv = os.getenv('WX_XCX_IV')
-        if d_key is None or d_iv is None:
-            raise KCAUTH_WX_XCX_KEY_ERROR.msg_format("未配置 WX_XCX_KEY 或 WX_XCX_IV")
-        ciphertext = base64.b64decode(cipher_text)
-        cipher = AES.new(d_key, AES.MODE_CBC, d_iv)
-        decrypted = cipher.decrypt(ciphertext)
-        return unpad(decrypted, AES.block_size).decode('utf-8')
+        iv_bytes = None
+        
+        # 如果配置了静态 IV，尝试解析
+        if d_iv:
+            try:
+                if len(d_iv) == 32:
+                    try:
+                        iv_bytes = bytes.fromhex(d_iv)
+                    except Exception:
+                        padding = "=" * (-len(d_iv) % 4)
+                        iv_bytes = base64.b64decode(d_iv + padding)
+                elif len(d_iv) == 16:
+                    iv_bytes = d_iv.encode('utf-8')
+                else:
+                    padding = "=" * (-len(d_iv) % 4)
+                    iv_bytes = base64.b64decode(d_iv + padding)
+            except Exception:
+                pass # IV 解析失败，可能不是静态模式
+        
+        decrypted_plain = None
+        last_error = None
+
+        # 策略1：如果配置了静态 IV，优先尝试静态 IV 解密
+        if iv_bytes and len(iv_bytes) == 16:
+            try:
+                cipher = AES.new(key_bytes, AES.MODE_CBC, iv_bytes)
+                decrypted = cipher.decrypt(raw_data)
+                decrypted_plain = unpad(decrypted, AES.block_size).decode('utf-8')
+                
+                # 解析并验证时间戳
+                try:
+                    data = json.loads(decrypted_plain)
+                    if isinstance(data, dict) and "t" in data and "v" in data:
+                        timestamp = data["t"]
+                        value = data["v"]
+                        
+                        now = time.time() * 1000
+                        # 检查有效期 60秒 (60000ms)
+                        if abs(now - timestamp) > 60000:
+                             raise ValueError(f"X-Key 已过期 (server_time={now}, client_time={timestamp})")
+                        
+                        return value
+                    # 兼容旧格式（纯字符串）
+                    return decrypted_plain
+                except json.JSONDecodeError:
+                    # 不是 JSON 格式，直接返回原文（兼容旧逻辑）
+                    return decrypted_plain
+            except Exception as e:
+                last_error = e
+                # 静态解密失败，继续尝试动态 IV 模式
+
+        # 策略2：尝试动态 IV 模式 (提取前16字节作为 IV)
+        if len(raw_data) >= 32: # 至少 16字节IV + 16字节密文(最小块)
+            try:
+                dynamic_iv = raw_data[:16]
+                dynamic_ciphertext = raw_data[16:]
+                cipher = AES.new(key_bytes, AES.MODE_CBC, dynamic_iv)
+                decrypted = cipher.decrypt(dynamic_ciphertext)
+                decrypted_plain = unpad(decrypted, AES.block_size).decode('utf-8')
+                
+                # 解析并验证时间戳
+                try:
+                    data = json.loads(decrypted_plain)
+                    if isinstance(data, dict) and "t" in data and "v" in data:
+                        timestamp = data["t"]
+                        value = data["v"]
+                        
+                        now = time.time() * 1000
+                        # 检查有效期 60秒 (60000ms)
+                        if abs(now - timestamp) > 60000:
+                             raise ValueError(f"X-Key 已过期 (server_time={now}, client_time={timestamp})")
+                        
+                        return value
+                    return decrypted_plain
+                except json.JSONDecodeError:
+                    return decrypted_plain
+            except Exception as e:
+                last_error = e
+        
+        raise KCAUTH_WX_XCX_KEY_ERROR.msg_format(f"Wx-Xcx-Key 解密失败: {str(last_error or '格式错误')}")
 
 
     @staticmethod
