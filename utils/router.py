@@ -3,6 +3,7 @@ import importlib.util
 import inspect
 import functools
 import secrets
+import string
 import base64
 import time
 from fastapi import FastAPI as KarioCore
@@ -388,9 +389,11 @@ def create_init_router(app: FastAPI):
             kc_api_key = secrets.token_hex(16)
 
             # 生成 AES-128-CBC 所需的 Key (16 bytes), IV (16 bytes) 和 Secret (32 bytes)
-            wxxcx_key = bytes.fromhex(secrets.token_hex(16)).decode('utf-8')
-            wxxcx_iv = bytes.fromhex(secrets.token_hex(16)).decode('utf-8')
-            wxxcx_secret = bytes.fromhex(secrets.token_hex(32)).decode('utf-8')
+            # 使用 secrets.choice 生成固定长度的 ASCII 字符串，确保长度直接匹配 AES-128 要求
+            alphabet = string.ascii_letters + string.digits
+            wxxcx_key = ''.join(secrets.choice(alphabet) for _ in range(16))
+            wxxcx_iv = ''.join(secrets.choice(alphabet) for _ in range(16))
+            wxxcx_secret = ''.join(secrets.choice(alphabet) for _ in range(32))
             
             app_logger.info("成功生成新的安全密钥和JWT配置")
             
