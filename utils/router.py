@@ -388,9 +388,9 @@ def create_init_router(app: FastAPI):
             kc_api_key = secrets.token_hex(16)
 
             # 生成 AES-128-CBC 所需的 Key (16 bytes), IV (16 bytes) 和 Secret (32 bytes)
-            wxxcx_key = bytes.fromhex(secrets.token_hex(16))
-            wxxcx_iv = bytes.fromhex(secrets.token_hex(16))
-            wxxcx_secret = bytes.fromhex(secrets.token_hex(32))
+            wxxcx_key = bytes.fromhex(secrets.token_hex(16)).decode('utf-8')
+            wxxcx_iv = bytes.fromhex(secrets.token_hex(16)).decode('utf-8')
+            wxxcx_secret = bytes.fromhex(secrets.token_hex(32)).decode('utf-8')
             
             app_logger.info("成功生成新的安全密钥和JWT配置")
             
