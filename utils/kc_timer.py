@@ -248,6 +248,56 @@ class Ktimer:
             raise KCT_TIME_CHANGE_ERROR.msg_format(f"计算时间差时发生错误: {str(e)}")
     
     @staticmethod
+    def time_diff_static(start_time: str, end_time: str, fmt: str = "%Y-%m-%d %H:%M:%S", 
+              unit: Literal['second', 'minute', 'hour', 'day'] = 'second') -> float:
+        """
+        计算两个时间字符串之间的时间差
+        
+        该函数计算两个指定格式的时间字符串之间的时间差，并可以按不同单位返回结果。
+        
+        Args:
+            start_time (str): 起始时间字符串
+            end_time (str): 结束时间字符串
+            fmt (str, optional): 时间字符串的格式。默认为 "%Y-%m-%d %H:%M:%S"
+            unit (Literal['second', 'minute', 'hour', 'day'], optional): 返回结果的单位。
+                可选值: 'second', 'minute', 'hour', 'day'。默认为 'second'
+        
+        Returns:
+            float: 时间差值，单位由unit参数指定，保留2位小数
+        """
+        if not isinstance(start_time, str) or not isinstance(end_time, str):
+            raise KCT_TIME_CHANGE_ERROR.msg_format("时间参数必须是字符串类型")
+        
+        if not isinstance(fmt, str):
+            raise KCT_TIME_CHANGE_ERROR.msg_format("时间格式参数必须是字符串类型")
+
+        valid_units = {'second', 'minute', 'hour', 'day'}
+        if unit not in valid_units:
+            raise KCT_TIME_CHANGE_ERROR.msg_format(f"单位参数必须是以下值之一: {valid_units}")
+        
+        try:
+            # 将字符串转换为datetime对象
+            datetime1 = datetime.datetime.strptime(start_time, fmt)
+            datetime2 = datetime.datetime.strptime(end_time, fmt)
+            # 计算时间差
+            time_difference = datetime2 - datetime1
+            # 获取时间差的总秒数（绝对值）
+            total_seconds = abs(time_difference.total_seconds())
+            # 根据指定单位转换结果
+            unit_factors = {
+                'second': 1,
+                'minute': 60,
+                'hour': 3600,
+                'day': 86400
+            }
+            result = total_seconds / unit_factors[unit]
+            return round(result, 2)
+        except ValueError as e:
+            raise KCT_TIME_CHANGE_ERROR.msg_format(f"时间字符串格式错误: {str(e)}")
+        except Exception as e:
+            raise KCT_TIME_CHANGE_ERROR.msg_format(f"计算时间差时发生错误: {str(e)}")
+    
+    @staticmethod
     def is_time_after(earlier_time: str, later_time: str, fmt: str = "%Y-%m-%d %H:%M:%S") -> bool:
         """
         比较两个时间字符串，判断后者是否在前者之后
